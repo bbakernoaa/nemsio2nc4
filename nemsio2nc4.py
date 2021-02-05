@@ -45,14 +45,16 @@ def execute_subprocess(cmd, verbose=False):
     return
 
 
-def get_exec_path(exec_name, verbose=False):
+def get_exec_path(exec_name, verbose=False, ctl_path=None):
     '''
     get the full path to a given executable name
     :param exec_name: executable to fine
     :param type: str
     '''
-
-    exec_path_def = '/gpfs/hps3/emc/naqfc/noscrub/Barry.Baker/FV3CHEM/exec/%s' % exec_name
+    if ctl_path is not None:
+        exec_path_def = ctl_path
+    else:
+        exec_path_def = '/gpfs/dell2/emc/modeling/noscrub/Barry.Baker/global-workflow.gefs/exec/%s' % exec_name
 
     exec_path = find_executable(exec_name)
     if exec_path is None:
@@ -69,10 +71,13 @@ def chdir(fname):
     return os.path.basename(fname)
 
 
-def change_file(finput,verbose=False):
+def change_file(finput,verbose=False, ctl=None):
     fname = finput.strip('.nemsio') if finput.endswith('.nemsio') else finput
     fname = chdir(finput)
-    mkgfsnemsioctl = get_exec_path('mkgfsnemsioctl', verbose=verbose)
+    if ctl is None:
+        mkgfsnemsioctl = get_exec_path('mkgfsnemsioctl', verbose=verbose)
+    else:
+        mkgfsnemsioctl = ctl
     cdo = get_exec_path('cdo', verbose=verbose)
 
     cmd = '%s %s' % (mkgfsnemsioctl, fname)
@@ -88,23 +93,24 @@ if __name__ == '__main__':
     parser.add_argument('-f', '--files', help='input nemsio file name', type=str, required=True)
     #parser.add_argument('-n', '--nprocs', help='Number of Processors', type=int, required=False, default=2)
     parser.add_argument('-v', '--verbose', help='print debugging information', action='store_true', required=False)
+    parser.add_argument('-c', '--ctl', help='Location of the grads control file to use', default=None)
     args = parser.parse_args()
     
     finput = args.files
     verbose = args.verbose
     #nprocs = args.nprocs
-    
+
     files = sorted(glob(finput))
     for i,j in enumerate(files):
         files[i] = os.path.realpath(j)
     if len(files) == 1:
         finput = files[0]
-        change_file(finput,verbose=verbose)
+        change_file(finput,verbose=verbose, ctl=args.ctl)
     else:
         realfiles = []
         for finput in files:
             if finput.endswith('.nemsio'):
                 realfiles.append(finput)
         for finput in realfiles:
-            change_file(finput,verbose=verbose)
+            change_file(finput,verbose=verbose, ctl=args.ctl)
    
